@@ -35,7 +35,7 @@ app.get("/api/players", async (req, res) => {
   }
 });
 
-app.get("/api/season-averages/:playerId/:season", async (req, res) => {
+/*app.get("/api/season-averages/:playerId/:season", async (req, res) => {
   const { playerId, season } = req.params;
   try {
     const response = await fetch(
@@ -49,6 +49,7 @@ app.get("/api/season-averages/:playerId/:season", async (req, res) => {
     res.status(500).json({ error: "Failed to fetch season averages" });
   }
 });
+*/
 app.get("/api/users", async (req, res) => {
   try {
     const ids = JSON.parse((await redisClient.get(key("users:list"))) || "[]");

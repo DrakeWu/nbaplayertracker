@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import heroImg from './assets/nba.png'
 import YearSelector from './YearSelector'
 import UserLogin from './UserLogin'
@@ -14,32 +14,28 @@ interface Player {
   }
 }
 
-interface PlayerStats {
-  id: number
-  pts: number
-  reb: number
-  ast: number
-  stl: number
-  blk: number
-  fg_pct: number
-  min: string
-}
-
 interface User {
   id: string
   name: string
   favoriteTeam: string
-  favoritePlayers: number[]
 }
 
 function App() {
   const [search, setSearch] = useState('')
   const [playerData, setPlayerData] = useState<Player | null>(null)
   const [error, setError] = useState<string | null>(null)
-  const [stats, setStats] = useState<PlayerStats | null>(null)
   const [selectedYear, setSelectedYear] = useState<number>(2024)
   const [activeUser, setActiveUser] = useState<User | null>(null)
   const [showLogin, setShowLogin] = useState(false)
+
+  useEffect(() => {
+    fetch('/api/active-user')
+      .then((res) => res.json())
+      .then((user) => {
+        if (user) setActiveUser(user)
+      })
+      .catch((err) => console.error('Failed to fetch active user', err))
+  }, [])
 
   async function handleSearch() {
     try {
@@ -55,13 +51,10 @@ function App() {
       setPlayerData(player)
       setError(null)
 
-      const statsResponse = await fetch(`/api/season-averages/${player.id}/${selectedYear}`)
-      const statsResult = await statsResponse.json()
-      setStats(statsResult.data[0] ?? null)
+      // Season averages requires a paid balldontlie plan — disabled for now
     } catch (err) {
       setError((err as Error).message)
       setPlayerData(null)
-      setStats(null)
     }
   }
 
@@ -79,6 +72,12 @@ function App() {
         <button onClick={() => setShowLogin(true)}>
           {activeUser ? `👤 ${activeUser.name}` : "Log In"}
         </button>
+
+        {activeUser && (
+          <p className="active-user-banner">
+            Logged in as <strong>{activeUser.name}</strong> · Favorite team: {activeUser.favoriteTeam}
+          </p>
+        )}
 
         {showLogin && (
           <UserLogin
@@ -107,22 +106,8 @@ function App() {
             <h3>{playerData.first_name} {playerData.last_name}</h3>
             <p>Position: {playerData.position}</p>
             <p>Team: {playerData.team?.full_name}</p>
-
-            {stats ? (
-              <div className="player-stats">
-                <p>PPG: {stats.pts}</p>
-                <p>RPG: {stats.reb}</p>
-                <p>APG: {stats.ast}</p>
-                <p>FG%: {(stats.fg_pct * 100)}%</p>
-              </div>
-            ) : (
-              <p>No stats available for {selectedYear}.</p>
-            )}
           </div>
         )}
-        {activeUser && (
-  <EditProfile user={activeUser} onUpdate={setActiveUser} />
-)}
       </section>
     </>
   )
