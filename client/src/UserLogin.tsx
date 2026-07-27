@@ -50,6 +50,8 @@ function UserLogin({ onLogin, onClose }: UserLoginProps) {
       setEditName(match.name)
       setEditTeam(match.favoriteTeam)
       setError(null)
+      posthog.identify(match.id, { favorite_team: match.favoriteTeam })
+      posthog.capture('user_logged_in')
     } catch (err) {
       setError((err as Error).message)
       posthog.capture('login_failed')

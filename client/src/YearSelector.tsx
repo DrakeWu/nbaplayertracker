@@ -1,3 +1,5 @@
+import posthog from 'posthog-js'
+
 interface YearSelectorProps {
   selectedYear: number
   onYearChange: (year: number) => void
@@ -14,7 +16,11 @@ function YearSelector({ selectedYear, onYearChange }: YearSelectorProps) {
   return (
     <select
       value={selectedYear}
-      onChange={(e) => onYearChange(Number(e.target.value))}
+      onChange={(e) => {
+        const year = Number(e.target.value)
+        posthog.capture('season_changed', { season: year })
+        onYearChange(year)
+      }}
     >
       {years.map((year) => (
         <option key={year} value={year}>
