@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import posthog from 'posthog-js'
 
 interface User {
   id: string
@@ -46,6 +47,8 @@ function UserLogin({ onLogin, onClose }: UserLoginProps) {
       setEditName(match.name)
       setEditTeam(match.favoriteTeam)
       setError(null)
+      posthog.identify(match.id, { favorite_team: match.favoriteTeam })
+      posthog.capture('user_logged_in')
     } catch (err) {
       setError((err as Error).message)
     }
@@ -63,6 +66,8 @@ function UserLogin({ onLogin, onClose }: UserLoginProps) {
       })
       if (!res.ok) throw new Error('Failed to save profile')
       const updated = await res.json()
+      posthog.identify(updated.id, { favorite_team: updated.favoriteTeam })
+      posthog.capture('profile_updated')
       onLogin(updated) // pass the final, updated user back up to App
     } catch (err) {
       setError((err as Error).message)
