@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import posthog from 'posthog-js'
 import heroImg from './assets/nba.png'
 import YearSelector from './YearSelector'
 import UserLogin from './UserLogin'
@@ -32,12 +33,16 @@ function App() {
     fetch('/api/active-user')
       .then((res) => res.json())
       .then((user) => {
-        if (user) setActiveUser(user)
+        if (user) {
+          setActiveUser(user)
+          posthog.identify(user.id, { name: user.name, favorite_team: user.favoriteTeam })
+        }
       })
       .catch((err) => console.error('Failed to fetch active user', err))
   }, [])
 
   async function handleSearch() {
+    posthog.capture('player_searched', { season_year: selectedYear })
     try {
       const response = await fetch(`/api/players?search=${encodeURIComponent(search)}`)
       if (!response.ok) {
@@ -50,11 +55,18 @@ function App() {
       const player = result.data[0]
       setPlayerData(player)
       setError(null)
+      posthog.capture('player_found', {
+        player_position: player.position,
+        player_team: player.team?.full_name,
+        season_year: selectedYear,
+      })
 
       // Season averages requires a paid balldontlie plan — disabled for now
     } catch (err) {
       setError((err as Error).message)
       setPlayerData(null)
+      posthog.capture('player_not_found', { season_year: selectedYear })
+      posthog.captureException(err as Error)
     }
   }
 
@@ -97,7 +109,10 @@ function App() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
-          <YearSelector season={selectedYear} onChange={setSelectedYear} />
+          <YearSelector season={selectedYear} onChange={(year) => {
+            setSelectedYear(year)
+            posthog.capture('season_year_changed', { season_year: year })
+          }} />
           <button onClick={handleSearch}>Search</button>
         </div>
         {error && <p className="error">{error}</p>}

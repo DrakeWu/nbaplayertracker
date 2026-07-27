@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import posthog from 'posthog-js'
 
 interface User {
   id: string
@@ -22,6 +23,7 @@ function UserLogin({ onLogin, onClose }: UserLoginProps) {
   const [editTeam, setEditTeam] = useState('')
 
   async function handleLogin() {
+    posthog.capture('login_attempted')
     try {
       const res = await fetch('/api/users')
       const users: User[] = await res.json()
@@ -42,12 +44,16 @@ function UserLogin({ onLogin, onClose }: UserLoginProps) {
         body: JSON.stringify({ id: match.id }),
       })
 
+      posthog.identify(match.id, { name: match.name, favorite_team: match.favoriteTeam })
+      posthog.capture('login_succeeded')
       setLoggedInUser(match)
       setEditName(match.name)
       setEditTeam(match.favoriteTeam)
       setError(null)
     } catch (err) {
       setError((err as Error).message)
+      posthog.capture('login_failed')
+      posthog.captureException(err as Error)
     }
   }
 
@@ -63,9 +69,12 @@ function UserLogin({ onLogin, onClose }: UserLoginProps) {
       })
       if (!res.ok) throw new Error('Failed to save profile')
       const updated = await res.json()
+      posthog.setPersonProperties({ name: updated.name, favorite_team: updated.favoriteTeam })
+      posthog.capture('profile_saved')
       onLogin(updated) // pass the final, updated user back up to App
     } catch (err) {
       setError((err as Error).message)
+      posthog.captureException(err as Error)
     }
   }
 
